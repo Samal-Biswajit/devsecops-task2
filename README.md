@@ -11,3 +11,4 @@ It runs automatically on every code push to the main branch.
 # devsecops-task2
 Github Actions CI/CD with tfsec, trivy, and sealed secrets
 
+# Triggering the Github Action

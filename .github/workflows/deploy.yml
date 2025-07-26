@@ -1,0 +1,29 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run tfsec on Terraform
+        uses: aquasecurity/tfsec-action@v1.0.0
+
+      - name: Run Trivy on Dockerfile
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+
+      - name: Apply fake Sealed Secret
+        run: |
+          echo "Simulating apply of sealed-secret.yaml"
+          cat sealed-secret.yaml

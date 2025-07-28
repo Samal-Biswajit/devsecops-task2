@@ -10,20 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Terraform Security Scan
+      # Step 2: Run tfsec on Terraform folder
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: ./terraform
 
-      # Build Docker Image
+      # Step 3: Rename Dockerfile if needed
+      - name: Rename Dockerfile if needed
+        run: |
+          if [ -f dockerfile.txt ]; then mv dockerfile.txt Dockerfile; fi
+
+      # Step 4: Build Docker Image
       - name: Build Docker image
         run: docker build -t myapp:latest .
 
-      # Trivy Vulnerability Scan
+      # Step 5: Scan Docker image with Trivy
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -32,39 +38,27 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      # Configure AWS Credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      # Setup kubeconfig
-      - name: Set up kubeconfig for EKS
-        run: |
-          aws eks update-kubeconfig --region us-east-1 --name my-cluster
-
-      # Install kubectl
+      # Step 6: Install kubectl
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
-      # Install kubeseal
+      # Step 7: Install kubeseal
       - name: Install kubeseal
         run: |
           wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.25.0/kubeseal-0.25.0-linux-amd64.tar.gz
           tar -xvzf kubeseal-0.25.0-linux-amd64.tar.gz
-          sudo mv kubeseal /usr/local/bin/
+          sudo mv kubeseal /usr/local/bin/kubeseal
 
-
-      # Apply Sealed Secrets
+      # Step 8: Apply SealedSecrets
       - name: Apply SealedSecrets
         run: |
-          kubectl apply -f k8s-manifests/sealed-secrets/my-sealed-secret.yaml
+          kubectl apply -f k8s-manifests/sealed-secrets/
 
-      # Deploy Application to Kubernetes
+      # Step 9: Deploy Application to Kubernetes
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s-manifests/
+
+

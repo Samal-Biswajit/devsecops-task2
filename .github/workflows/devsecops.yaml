@@ -25,7 +25,7 @@ jobs:
         run: |
           if [ -f dockerfile.txt ]; then mv dockerfile.txt Dockerfile; fi
 
-      # Step 4: Build Docker Image
+      # Step 4: Build Docker image
       - name: Build Docker image
         run: docker build -t myapp:latest .
 
@@ -38,27 +38,5 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      # Step 6: Install kubectl
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
-      # Step 7: Install kubeseal
-      - name: Install kubeseal
-        run: |
-          wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.25.0/kubeseal-0.25.0-linux-amd64.tar.gz
-          tar -xvzf kubeseal-0.25.0-linux-amd64.tar.gz
-          sudo mv kubeseal /usr/local/bin/kubeseal
-
-      # Step 8: Apply SealedSecrets
-      - name: Apply SealedSecrets
-        run: |
-          kubectl apply -f k8s-manifests/sealed-secrets/
-
-      # Step 9: Deploy Application to Kubernetes
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl apply -f k8s-manifests/
 
 

@@ -1,0 +1,70 @@
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  devsecops:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Terraform Security Scan
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ./terraform
+
+      # Build Docker Image
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      # Trivy Vulnerability Scan
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: myapp:latest
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      # Configure AWS Credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Setup kubeconfig
+      - name: Set up kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name my-cluster
+
+      # Install kubectl
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # Install kubeseal
+      - name: Install kubeseal
+        run: |
+          wget https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.25.0/kubeseal-0.25.0-linux-amd64.tar.gz
+          tar -xvzf kubeseal-0.25.0-linux-amd64.tar.gz
+          sudo mv kubeseal /usr/local/bin/
+
+
+      # Apply Sealed Secrets
+      - name: Apply SealedSecrets
+        run: |
+          kubectl apply -f k8s-manifests/sealed-secrets/my-sealed-secret.yaml
+
+      # Deploy Application to Kubernetes
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s-manifests/
